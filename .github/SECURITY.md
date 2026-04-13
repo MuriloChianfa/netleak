@@ -6,7 +6,9 @@ The following versions are currently being supported with security updates:
 
 | Version | Supported |
 | ------- | --------- |
-| 0.x.x   |     Yes   |
+| 1.1.x   |     Yes   |
+| 1.0.x   |     No    |
+| 0.x.x   |     No    |
 
 ## Reporting a Vulnerability
 

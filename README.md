@@ -28,8 +28,8 @@
   Download the `.deb` package from the [latest release](https://github.com/MuriloChianfa/netleak/releases/latest) and install it:
 
   ```bash
-  curl -LO https://github.com/MuriloChianfa/netleak/releases/download/v1.1.0/netleak_1.1.0_amd64.deb
-  sudo dpkg -i netleak_1.1.0_amd64.deb
+  curl -LO https://github.com/MuriloChianfa/netleak/releases/download/v1.1.1/netleak_1.1.1_amd64.deb
+  sudo dpkg -i netleak_1.1.1_amd64.deb
   ```
 </details>
 <details name="install">
@@ -38,8 +38,8 @@
   Download the `.rpm` package from the [latest release](https://github.com/MuriloChianfa/netleak/releases/latest) and install it:
 
   ```bash
-  curl -LO https://github.com/MuriloChianfa/netleak/releases/download/v1.1.0/netleak-1.1.0-1.x86_64.rpm
-  sudo rpm -i netleak-1.1.0-1.x86_64.rpm
+  curl -LO https://github.com/MuriloChianfa/netleak/releases/download/v1.1.1/netleak-1.1.1-1.x86_64.rpm
+  sudo rpm -i netleak-1.1.1-1.x86_64.rpm
   ```
 </details>
 

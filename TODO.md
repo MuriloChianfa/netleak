@@ -63,6 +63,9 @@
 - [x] Results output in machine-readable format (JSON/CSV)
 - [x] CI job: run benchmarks and upload results as artifacts
 - [x] Historical tracking: compare against previous runs to detect regressions
+- [x] Automatic privilege drop for child processes when running under sudo
+- [x] `--keep-root` flag to opt out of privilege dropping
+- [x] `make install` / `make uninstall` targets
 
 ## v1.2.0 - Daemon Mode
 

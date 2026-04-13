@@ -1,5 +1,5 @@
 Name:           netleak
-Version:        %{?version}%{!?version:1.1.0}
+Version:        %{?version}%{!?version:1.1.1}
 Release:        %{?release}%{!?release:1}%{?dist}
 Summary:        cgroup-based eBPF per-process traffic redirection
 
@@ -59,6 +59,13 @@ if [ -d /sys/fs/cgroup/netleak ]; then
 fi
 
 %changelog
+* Sun Apr 13 2026 MuriloChianfa <murilo.chianfa@outlook.com> - 1.1.1
+- Release version 1.1.1
+- Automatic privilege drop for child processes (SSH agent fix)
+- New --keep-root flag to opt out of privilege dropping
+- make install / make uninstall targets
+- VPN throughput and latency benchmarks
+
 * Thu Mar 26 2026 MuriloChianfa <murilo.chianfa@outlook.com> - 1.1.0
 - Release version 1.1.0
 - IPv6 policy routing support

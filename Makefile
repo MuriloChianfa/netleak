@@ -15,8 +15,9 @@ BPF_CFLAGS := -O2 -g \
 BPF_SRCS := bpf/netleak.c
 BPF_OBJS := bpf/netleak.o
 TARGET   := netleak
+PREFIX   ?= /usr/local
 
-.PHONY: all cmd clean
+.PHONY: all cmd clean install uninstall
 
 all: cmd $(BPF_OBJS)
 
@@ -25,6 +26,13 @@ all: cmd $(BPF_OBJS)
 
 cmd:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -C cmd -buildvcs=false -o ../$(TARGET)
+
+install: all
+	install -d $(DESTDIR)$(PREFIX)/bin
+	install -m 755 $(TARGET) $(DESTDIR)$(PREFIX)/bin/$(TARGET)
+
+uninstall:
+	rm -f $(DESTDIR)$(PREFIX)/bin/$(TARGET)
 
 clean:
 	rm -f $(BPF_OBJS)
