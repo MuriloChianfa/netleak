@@ -60,7 +60,8 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "  --ingress-filter       Drop inbound packets not from the target interface\n")
 	fmt.Fprintf(os.Stderr, "  --only-v4              Route only IPv4; block all IPv6 traffic\n")
 	fmt.Fprintf(os.Stderr, "  --only-v6              Route only IPv6; block all IPv4 traffic\n")
-	fmt.Fprintf(os.Stderr, "  --fallback-to-v4       If interface lacks IPv6, allow IPv6 via default route\n\n")
+	fmt.Fprintf(os.Stderr, "  --fallback-to-v4       If interface lacks IPv6, allow IPv6 via default route\n")
+	fmt.Fprintf(os.Stderr, "  --keep-root            Run the command as root instead of dropping to the invoking user\n\n")
 	fmt.Fprintf(os.Stderr, "Examples:\n")
 	fmt.Fprintf(os.Stderr, "  sudo netleak ppp0 curl ifconfig.me\n")
 	fmt.Fprintf(os.Stderr, "  sudo netleak --only-v4 ppp0 curl ifconfig.me\n")
@@ -73,6 +74,7 @@ type cliOpts struct {
 	cmdArgs       []string
 	ingressFilter bool
 	ipMode        ipMode
+	keepRoot      bool
 }
 
 // parseArgs processes CLI arguments, resolving the target interface
@@ -98,6 +100,10 @@ func parseArgs(args []string) (cliOpts, error) {
 
 		case "--fallback-to-v4":
 			opts.ipMode = ipModeFallback
+			i++
+
+		case "--keep-root":
+			opts.keepRoot = true
 			i++
 
 		case "--gateway":
@@ -258,16 +264,28 @@ func run(opts cliOpts) (int, error) {
 
 	// --- Run target command ---
 	log.Printf("Executing: %v", cmdArgs)
-	return execAndWait(ctx, cancel, cmdArgs)
+	return execAndWait(ctx, cancel, cmdArgs, opts.keepRoot)
 }
 
 // execAndWait forks the target command, forwards signals, waits for
-// it to exit, and returns its exit code.
-func execAndWait(_ context.Context, cancel context.CancelFunc, cmdArgs []string) (int, error) {
+// it to exit, and returns its exit code. Unless keepRoot is true, it
+// drops privileges back to the invoking user when running under sudo.
+func execAndWait(_ context.Context, cancel context.CancelFunc, cmdArgs []string, keepRoot bool) (int, error) {
 	child := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	child.Stdin = os.Stdin
 	child.Stdout = os.Stdout
 	child.Stderr = os.Stderr
+
+	if !keepRoot {
+		if spa, env, err := dropPrivileges(); err == nil {
+			child.SysProcAttr = spa
+			child.Env = env
+			log.Printf("Dropping privileges to uid=%d gid=%d",
+				spa.Credential.Uid, spa.Credential.Gid)
+		} else if !errors.Is(err, errNotSudo) {
+			log.Printf("Warning: privilege drop failed: %v (running as root)", err)
+		}
+	}
 
 	if err := child.Start(); err != nil {
 		return 1, fmt.Errorf("exec %s: %w", cmdArgs[0], err)
