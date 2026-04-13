@@ -4,9 +4,9 @@
 #ifndef __NETLEAK_H__
 #define __NETLEAK_H__
 
-#include <linux/types.h>
-#include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
+#include <linux/bpf.h>
+#include <linux/types.h>
 
 /* Policy flags */
 #define FLAG_KILL_SWITCH (1 << 0)

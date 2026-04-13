@@ -152,3 +152,9 @@ jobs:
 
       - name: Staticcheck
         run: staticcheck ./cmd/...
+
+      - name: Check BPF code formatting
+        run: |
+          sudo apt update
+          sudo apt install -y clang-format
+          clang-format --dry-run --Werror bpf/*.c bpf/*.h
