@@ -1,0 +1,221 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2024-2026 MuriloChianfa
+#
+# Set up an L2TP/IPSec tunnel (libreswan + xl2tpd + pppd) between the root
+# namespace and the vpn-server namespace, producing a ppp0 interface on each side.
+---
+- name: Install L2TP/IPSec packages
+  apk:
+    name:
+      - libreswan
+      - xl2tpd
+      - ppp-daemon
+    state: present
+    update_cache: true
+
+- name: Load required kernel modules
+  ansible.builtin.shell: |
+    modprobe af_key      2>/dev/null || true
+    modprobe ah4         2>/dev/null || true
+    modprobe esp4        2>/dev/null || true
+    modprobe xfrm_user   2>/dev/null || true
+    modprobe pppol2tp    2>/dev/null || true
+    modprobe l2tp_ppp    2>/dev/null || true
+    modprobe l2tp_netlink 2>/dev/null || true
+    modprobe ppp_generic 2>/dev/null || true
+    modprobe l2tp_eth    2>/dev/null || true
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: Create config directories
+  ansible.builtin.shell: |
+    mkdir -p /etc/ipsec.d
+    mkdir -p /etc/ipsec-server /etc/ipsec-server/ipsec.d
+    mkdir -p /etc/xl2tpd-server /etc/xl2tpd-client
+    mkdir -p /etc/ppp
+    mkdir -p /var/run/xl2tpd-server /var/run/xl2tpd-client
+    touch /etc/ppp/chap-secrets
+  args:
+    executable: /bin/bash
+
+- name: Deploy libreswan server config
+  ansible.builtin.template:
+    src: ipsec-server.conf.j2
+    dest: /etc/ipsec-server/ipsec.conf
+    mode: "0600"
+
+- name: Deploy libreswan server secrets
+  ansible.builtin.template:
+    src: ipsec.secrets.j2
+    dest: /etc/ipsec-server/ipsec.secrets
+    mode: "0600"
+
+- name: Deploy libreswan client config
+  ansible.builtin.template:
+    src: ipsec-client.conf.j2
+    dest: /etc/ipsec.conf
+    mode: "0600"
+
+- name: Deploy libreswan client secrets
+  ansible.builtin.template:
+    src: ipsec.secrets.j2
+    dest: /etc/ipsec.secrets
+    mode: "0600"
+
+- name: Deploy xl2tpd server config
+  ansible.builtin.template:
+    src: xl2tpd-server.conf.j2
+    dest: /etc/xl2tpd-server/xl2tpd.conf
+    mode: "0644"
+
+- name: Deploy xl2tpd client config
+  ansible.builtin.template:
+    src: xl2tpd-client.conf.j2
+    dest: /etc/xl2tpd-client/xl2tpd.conf
+    mode: "0644"
+
+- name: Deploy PPP server options
+  ansible.builtin.template:
+    src: ppp-options-server.j2
+    dest: /etc/ppp/options.l2tpd-server
+    mode: "0644"
+
+- name: Deploy PPP client options
+  ansible.builtin.template:
+    src: ppp-options-client.j2
+    dest: /etc/ppp/options.l2tpd-client
+    mode: "0644"
+
+- name: Initialize libreswan NSS database for server
+  ansible.builtin.shell: |
+    ipsec initnss --nssdir /etc/ipsec-server/ipsec.d 2>/dev/null || true
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: Initialize libreswan NSS database for client
+  ansible.builtin.shell: |
+    ipsec initnss --nssdir /etc/ipsec.d 2>/dev/null || true
+  args:
+    executable: /bin/bash
+  changed_when: true
+
+- name: Start pluto (libreswan) in server namespace
+  ansible.builtin.shell: |
+    mkdir -p /run/pluto-server
+    ip netns exec {{ vpn_server_ns }} \
+      ipsec pluto \
+        --config /etc/ipsec-server/ipsec.conf \
+        --secretsfile /etc/ipsec-server/ipsec.secrets \
+        --nssdir /etc/ipsec-server/ipsec.d \
+        --rundir /run/pluto-server \
+        --stderrlog
+  args:
+    executable: /bin/bash
+
+- name: Wait for server pluto to initialize
+  ansible.builtin.pause:
+    seconds: 3
+
+- name: Load server IPSec connection
+  ansible.builtin.shell: |
+    ip netns exec {{ vpn_server_ns }} \
+      ipsec addconn \
+        --ctlsocket /run/pluto-server/pluto.ctl \
+        --config /etc/ipsec-server/ipsec.conf \
+        l2tp-server && \
+    ip netns exec {{ vpn_server_ns }} \
+      ipsec whack \
+        --rundir /run/pluto-server \
+        --listen
+  args:
+    executable: /bin/bash
+
+- name: Start pluto (libreswan) in client namespace
+  ansible.builtin.shell: |
+    mkdir -p /run/pluto
+    ipsec pluto \
+      --config /etc/ipsec.conf \
+      --secretsfile /etc/ipsec.secrets \
+      --nssdir /etc/ipsec.d \
+      --stderrlog
+  args:
+    executable: /bin/bash
+
+- name: Wait for client pluto to initialize
+  ansible.builtin.pause:
+    seconds: 3
+
+- name: Initiate IPSec connection from client
+  ansible.builtin.shell: |
+    ipsec addconn --config /etc/ipsec.conf l2tp-client
+    ipsec whack --name l2tp-client --initiate
+  args:
+    executable: /bin/bash
+  register: ipsec_up
+  retries: 5
+  delay: 3
+  until: ipsec_up.rc == 0
+
+- name: Wait for IPSec SA to establish
+  ansible.builtin.pause:
+    seconds: 3
+
+- name: Start xl2tpd server in server namespace
+  ansible.builtin.shell: |
+    ip netns exec {{ vpn_server_ns }} \
+      xl2tpd -c /etc/xl2tpd-server/xl2tpd.conf \
+        -p /var/run/xl2tpd-server/xl2tpd.pid \
+        -C /var/run/xl2tpd-server/l2tp-control
+    sleep 2
+  args:
+    executable: /bin/bash
+
+- name: Start xl2tpd client in root namespace
+  ansible.builtin.shell: |
+    xl2tpd -c /etc/xl2tpd-client/xl2tpd.conf \
+      -p /var/run/xl2tpd-client/xl2tpd.pid \
+      -C /var/run/xl2tpd-client/l2tp-control
+    sleep 2
+  args:
+    executable: /bin/bash
+
+- name: Trigger L2TP tunnel from client
+  ansible.builtin.shell: |
+    echo "c vpn" > /var/run/xl2tpd-client/l2tp-control
+  args:
+    executable: /bin/bash
+
+- name: Wait for PPP tunnel to establish
+  ansible.builtin.shell: |
+    for i in $(seq 1 30); do
+      if ip link show ppp0 2>/dev/null | grep -q UP; then
+        exit 0
+      fi
+      sleep 1
+    done
+    echo "ppp0 did not come up within 30s"
+    ip link show 2>/dev/null || true
+    exit 1
+  args:
+    executable: /bin/bash
+  register: ppp_wait
+  retries: 3
+  delay: 5
+  until: ppp_wait.rc == 0
+
+- name: Verify L2TP/IPSec tunnel connectivity
+  ansible.builtin.command:
+    cmd: ping -c 2 -W 3 {{ tunnel_server_ip }}
+  register: l2tp_ping
+  retries: 5
+  delay: 3
+  until: l2tp_ping.rc == 0
+
+- name: Start HTTP listener in server namespace
+  ansible.builtin.shell: |
+    ip netns exec {{ vpn_server_ns }} sh -c \
+      'cd /tmp && nohup python3 -m http.server {{ http_listen_port }} --bind 0.0.0.0 > /tmp/http.log 2>&1 &'
+  args:
+    executable: /bin/bash

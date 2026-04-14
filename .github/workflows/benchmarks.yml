@@ -21,6 +21,7 @@ jobs:
           - openvpn
           - strongswan
           - softether
+          - l2tp-ipsec
 
     env:
       BENCH_TIMEOUT: 600

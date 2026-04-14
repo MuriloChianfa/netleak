@@ -9,8 +9,8 @@ SSH_KEY         := .ssh/e2e_key
 NETLEAK_BIN     := ../../netleak
 NETLEAK_BPF     := ../../bpf/netleak.o
 
-SCENARIOS := wireguard openvpn strongswan softether multi-interface
-BENCH_SCENARIOS := wireguard openvpn strongswan softether
+SCENARIOS := wireguard openvpn strongswan softether l2tp-ipsec multi-interface
+BENCH_SCENARIOS := wireguard openvpn strongswan softether l2tp-ipsec
 
 .PHONY: all download-image build-seed-iso ssh-keygen check-binary \
         run-all $(addprefix run-,$(SCENARIOS)) \

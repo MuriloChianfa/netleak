@@ -21,6 +21,7 @@ jobs:
           - openvpn
           - strongswan
           - softether
+          - l2tp-ipsec
           - multi-interface
 
     env:

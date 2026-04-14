@@ -53,6 +53,9 @@ e2e-strongswan: all
 e2e-softether: all
 	$(MAKE) -C tests/e2e run-softether
 
+e2e-l2tp-ipsec: all
+	$(MAKE) -C tests/e2e run-l2tp-ipsec
+
 bench: all
 	$(MAKE) -C tests/e2e bench-all
 	$(MAKE) -C tests/e2e aggregate-results
@@ -68,6 +71,9 @@ bench-strongswan: all
 
 bench-softether: all
 	$(MAKE) -C tests/e2e bench-softether
+
+bench-l2tp-ipsec: all
+	$(MAKE) -C tests/e2e bench-l2tp-ipsec
 
 show:
 	sudo bpftool prog show

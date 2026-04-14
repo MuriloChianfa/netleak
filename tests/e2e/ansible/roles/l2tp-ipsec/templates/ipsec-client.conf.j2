@@ -1,0 +1,16 @@
+config setup
+  ikev1-policy=accept
+
+conn l2tp-client
+  authby=secret
+  type=transport
+  keyexchange=ikev1
+  ike=aes256-sha1;modp2048
+  esp=aes256-sha1
+  pfs=no
+  rekey=no
+  left={{ underlay_client_ip }}
+  leftprotoport=17/1701
+  right={{ underlay_server_ip }}
+  rightprotoport=17/1701
+  auto=start

@@ -1,0 +1,10 @@
+[global]
+port = 1701
+auth file = /etc/ppp/chap-secrets
+
+[lns default]
+ip range = {{ tunnel_client_ip }}-{{ tunnel_client_ip }}
+local ip = {{ tunnel_server_ip }}
+require authentication = no
+pppoptfile = /etc/ppp/options.l2tpd-server
+length bit = yes

@@ -35,6 +35,10 @@
   - [x] Ansible role: SoftEther server with virtual hub, `tap0` bridge interface
   - [x] Traffic routing verification (`netleak tap0 curl ...`)
   - [x] Kill-switch and recovery validation (layer-2 tap device)
+- [x] L2TP/IPSec integration test
+  - [x] Ansible role: libreswan IKEv1 transport mode + xl2tpd + pppd, `ppp0` tunnel
+  - [x] Traffic routing verification (`netleak ppp0 curl ...`)
+  - [x] Kill-switch and recovery validation (PPP session re-establishment)
 - [x] GitHub Actions CI workflow for e2e tests (TCG mode, parallel job matrix)
 - [x] Test artifact collection and log upload
 
@@ -58,6 +62,7 @@
 - [x] OpenVPN (`tun0`) throughput benchmark
 - [x] strongSwan/IPsec (`vti0`) throughput benchmark
 - [x] SoftEther (`tap0`) throughput benchmark
+- [x] L2TP/IPSec (`ppp0`) throughput benchmark
 - [x] Latency benchmarks (RTT via `ping` with and without netleak)
 - [x] Multi-stream benchmarks (parallel `iperf3` sessions)
 - [x] Results output in machine-readable format (JSON/CSV)
