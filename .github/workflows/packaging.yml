@@ -71,7 +71,7 @@ jobs:
             dpkg-dev fakeroot
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -141,7 +141,7 @@ jobs:
             rpm-build
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
         uses: actions/setup-go@v5
